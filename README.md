@@ -7,10 +7,15 @@ This project uses Git hooks managed by pre-commit to validate code and configura
 - **mypy**: checks Python types for common errors.
 - **terraform fmt**: formats Terraform files to canonical HCL style.
 - **check-yaml**: validates YAML syntax.
-- **end-of-file-fixer**: fixes trailing whitespace and newline issues.
 - **detect-private-key**: detects private keys in staged files.
 - **detect-secrets**: flags likely secrets and tokens.
 - **Conventional Commits**: enforces a consistent commit message format.
+
+## CI/CD
+
+GitHub Actions is used for pull request validation. It runs separate checks for Python and Terraform, including formatting, linting, validation, TFLint, Checkov, and Snyk scans. Each check is exposed as its own status in the PR view, which makes failures easier to identify.
+
+Cloud Build is used for the deployment pipeline in Google Cloud. It is triggered after changes are merged into the main branch and handles the build and deployment flow for the application and infrastructure defined in the project.
 
 ## Local setup
 

@@ -1,0 +1,47 @@
+steps:
+  # Terraform initialization
+  - name: hashicorp/terraform:1.13.0
+    id: terraform-init
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        terraform init -input=false \
+        | tee /workspace/terraform-init.log
+    dir: "terraform"
+
+  # Terraform validation
+  - name: hashicorp/terraform:1.13.0
+    id: terraform-validate
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        terraform validate -no-color \
+        | tee /workspace/terraform-validate.log
+    dir: "terraform"
+
+  # Terraform plan
+  - name: hashicorp/terraform:1.13.0
+    id: terraform-plan
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        terraform plan -input=false -no-color -out=tfplan \
+        | tee /workspace/terraform-plan.log
+    dir: "terraform"
+
+  # Terraform apply
+  - name: hashicorp/terraform:1.13.0
+    id: terraform-apply
+    entrypoint: sh
+    args:
+      - -c
+      - |
+        terraform apply -input=false -auto-approve tfplan \
+        | tee /workspace/terraform-apply.log
+    dir: "terraform"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
