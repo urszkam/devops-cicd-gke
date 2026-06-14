@@ -1,0 +1,28 @@
+steps:
+  # Terraform initialization with the remote backend
+  - name: hashicorp/terraform:1.13.0
+    id: terraform-init
+    args: ["init"]
+    dir: "terraform"
+
+  # Terraform validation
+  - name: hashicorp/terraform:1.13.0
+    id: terraform-validate
+    args: ["validate"]
+    dir: "terraform"
+
+  # Terraform plan against the remote state
+  - name: hashicorp/terraform:1.13.0
+    id: terraform-plan
+    args: [
+      "plan",
+      "-var-file=${_TFVARS}",
+      "-var=container_image_tag=${SHORT_SHA}",
+    ]
+    dir: "terraform"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _TFVARS: tfvars/dev.tfvars
