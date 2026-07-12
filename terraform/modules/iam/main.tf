@@ -2,3 +2,19 @@ resource "google_service_account" "cloud_run" {
   account_id   = var.cloud_run_service_account_id
   display_name = var.cloud_run_service_account_display_name
 }
+
+resource "google_service_account" "gke" {
+  account_id   = var.gke_service_account_id
+  display_name = var.gke_service_account_display_name
+}
+
+resource "google_project_iam_member" "gke_node" {
+  for_each = toset([
+    "roles/artifactregistry.reader",
+    "roles/container.defaultNodeServiceAccount",
+  ])
+
+  project = var.project_id
+  role    = each.value
+  member  = "serviceAccount:${google_service_account.gke.email}"
+}

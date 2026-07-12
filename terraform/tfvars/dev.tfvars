@@ -9,3 +9,6 @@ allow_unauthenticated   = true
 cloud_run_min_instances = 1
 cloud_run_max_instances = 3
 cloud_run_memory        = "512Mi"
+
+gke_cluster_name        = "suml-dev-gke"
+gke_deletion_protection = false

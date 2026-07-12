@@ -16,6 +16,25 @@ module "iam" {
 
   cloud_run_service_account_id           = "${var.project_name}-run"
   cloud_run_service_account_display_name = "Cloud Run service account for ${var.cloud_run_service_name}"
+  gke_service_account_id                 = "${var.project_name}-gke"
+  gke_service_account_display_name       = "GKE node service account for ${var.gke_cluster_name}"
+  project_id                             = var.project_id
+}
+
+module "gke" {
+  source = "./modules/gke"
+
+  cluster_name         = var.gke_cluster_name
+  location             = var.region
+  node_service_account = module.iam.gke_service_account_email
+  deletion_protection  = var.gke_deletion_protection
+  labels = {
+    app     = var.cloud_run_service_name
+    env     = var.env
+    project = var.project_name
+  }
+
+  depends_on = [module.iam]
 }
 
 module "cloud_run" {

@@ -52,3 +52,14 @@ variable "cloud_run_memory" {
   description = "Memory limit."
   type        = string
 }
+
+variable "gke_cluster_name" {
+  description = "GKE cluster name."
+  type        = string
+}
+
+variable "gke_deletion_protection" {
+  description = "Enable deletion protection for the GKE cluster."
+  type        = bool
+  default     = true
+}
