@@ -3,6 +3,15 @@ project_name = "suml-dev-s28722"
 env          = "dev"
 region       = "europe-west3"
 
+enabled_services = [
+  "artifactregistry.googleapis.com",
+  "cloudbuild.googleapis.com",
+  "compute.googleapis.com",
+  "container.googleapis.com",
+  "iam.googleapis.com",
+  "run.googleapis.com",
+]
+
 cloud_run_service_name  = "burnout-app"
 container_port          = 8080
 allow_unauthenticated   = true

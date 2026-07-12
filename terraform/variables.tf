@@ -18,6 +18,11 @@ variable "region" {
   type        = string
 }
 
+variable "enabled_services" {
+  description = "Google Cloud APIs enabled for the project."
+  type        = list(string)
+}
+
 variable "cloud_run_service_name" {
   description = "Application and Cloud Run service name."
   type        = string
