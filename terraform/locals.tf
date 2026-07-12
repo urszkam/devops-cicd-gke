@@ -1,6 +1,6 @@
 locals {
   common_labels = {
-    app     = var.cloud_run_service_name
+    app     = var.app_name
     env     = var.env
     project = var.project_name
   }

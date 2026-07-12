@@ -9,15 +9,9 @@ enabled_services = [
   "compute.googleapis.com",
   "container.googleapis.com",
   "iam.googleapis.com",
-  "run.googleapis.com",
 ]
 
-cloud_run_service_name  = "burnout-app"
-container_port          = 8080
-allow_unauthenticated   = true
-cloud_run_min_instances = 1
-cloud_run_max_instances = 3
-cloud_run_memory        = "512Mi"
+app_name = "burnout-app"
 
 gke_cluster_name        = "suml-dev-gke"
 gke_deletion_protection = false
