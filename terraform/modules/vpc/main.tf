@@ -4,6 +4,24 @@ resource "google_compute_network" "this" {
   description             = "VPC network for ${var.network_name}."
 }
 
+resource "google_compute_firewall" "deny_ingress" {
+  name        = "${var.network_name}-deny-ingress"
+  network     = google_compute_network.this.id
+  description = "Explicitly deny ingress traffic not allowed by a higher-priority rule."
+  direction   = "INGRESS"
+  priority    = 65534
+
+  deny {
+    protocol = "all"
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
+}
+
 resource "google_compute_subnetwork" "this" {
   name          = var.subnetwork_name
   ip_cidr_range = var.nodes_cidr_block
