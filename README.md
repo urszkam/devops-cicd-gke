@@ -2,9 +2,6 @@
 
 Sole contributor: Urszula Kamińska, s28722
 
-Deployed Application URL: https://burnout-app-l2dknrhseq-ey.a.run.app/
-
-
 ## Streamlit Application
 
 The application is a Streamlit app that lets users enter developer profile values and receive a burnout prediction with class probabilities.
@@ -45,23 +42,21 @@ Cloud Build is used for the deployment pipeline in Google Cloud. It is triggered
 
 ## Cloud
 
-The application is deployed to Google Cloud Run. Docker images are stored in Artifact Registry.
+The application is deployed to Google Kubernetes Engine. Docker images are stored in Artifact Registry.
 
 ### Prerequisites
 
-- Cloud Build, Cloud Run Admin and Artifact Registry APIs are enabled.
-- A Cloud Build trigger runs `cloudbuild.yaml` with a service account that can manage Terraform state, Service Accounts Artifact Registry and Cloud Run.
+- A Cloud Build trigger runs `cloudbuild.yaml` with a service account that can manage Terraform state, service accounts, Artifact Registry and GKE.
 - The Terraform state bucket `suml-s28722-terraform-state` exists.
 
 ## Terraform
 
 Terraform creates:
 
+- required Google Cloud APIs,
 - an Artifact Registry Docker repository,
-- a Cloud Run runtime service account,
-- a Cloud Run service running the image tagged with the Cloud Build commit SHA,
-
-The Cloud Run runtime service account is intentionally created without additional IAM roles because the Streamlit application does not call Google Cloud APIs at runtime.
+- a dedicated GKE node service account,
+- a GKE Autopilot cluster.
 
 ### Deployment
 
@@ -72,8 +67,8 @@ Cloud Build runs the deployment pipeline from `cloudbuild.yaml`:
 3. Builds the Docker image of the Streamlit application.
 4. Pushes the image to Artifact Registry.
 5. Runs Terraform plan and apply.
+6. Deploys the Kubernetes manifests to GKE.
 
-![Deployment](assets/images/deployment.png)
 
 ## Local setup
 

@@ -1,41 +1,11 @@
 steps:
-  # Terraform initialization
-  - name: hashicorp/terraform:1.13.0
-    id: terraform-init
-    args: ["init"]
-    dir: "terraform"
-
-  # Terraform validation
-  - name: hashicorp/terraform:1.13.0
-    id: terraform-validate
-    args: ["validate"]
-    dir: "terraform"
-
-  # Plan Artifact Registry bootstrap before pushing the image
-  - name: hashicorp/terraform:1.13.0
-    id: terraform-bootstrap-plan
-    args: [
-      "plan",
-      "-out=bootstrap.tfplan",
-      "-var-file=${_TFVARS}",
-      "-var=container_image_tag=${SHORT_SHA}",
-      "-target=module.artifact_registry",
-    ]
-    dir: "terraform"
-
-  # Apply Artifact Registry bootstrap before pushing the image
-  - name: hashicorp/terraform:1.13.0
-    id: terraform-bootstrap-apply
-    args: ["apply", "bootstrap.tfplan"]
-    dir: "terraform"
-
   # Build application image tagged with the commit SHA
   - name: gcr.io/cloud-builders/docker
     id: docker-build
     args: [
       "build",
       "-t",
-      "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_CLOUD_RUN_SERVICE}/${_CLOUD_RUN_SERVICE}:${SHORT_SHA}",
+      "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_APP_NAME}/${_APP_NAME}:${SHORT_SHA}",
       "app",
     ]
 
@@ -44,30 +14,23 @@ steps:
     id: docker-push
     args: [
       "push",
-      "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_CLOUD_RUN_SERVICE}/${_CLOUD_RUN_SERVICE}:${SHORT_SHA}",
+      "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_APP_NAME}/${_APP_NAME}:${SHORT_SHA}",
     ]
 
-  # Terraform plan
-  - name: hashicorp/terraform:1.13.0
-    id: terraform-plan
-    args: [
-      "plan",
-      "-out=tfplan",
-      "-var-file=${_TFVARS}",
-      "-var=container_image_tag=${SHORT_SHA}",
-    ]
-    dir: "terraform"
-
-  # Terraform apply
-  - name: hashicorp/terraform:1.13.0
-    id: terraform-apply
-    args: ["apply", "tfplan"]
-    dir: "terraform"
+  # Deploy Kubernetes manifests to GKE
+  - name: gcr.io/cloud-builders/gke-deploy
+    id: kubernetes-deploy
+    args:
+      - "run"
+      - "--filename=kubernetes"
+      - "--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_APP_NAME}/${_APP_NAME}:${SHORT_SHA}"
+      - "--location=${_REGION}"
+      - "--cluster=${_GKE_CLUSTER}"
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
-  _TFVARS: tfvars/dev.tfvars
   _REGION: europe-west3
-  _CLOUD_RUN_SERVICE: burnout-app
+  _APP_NAME: burnout-app
+  _GKE_CLUSTER: suml-dev-gke

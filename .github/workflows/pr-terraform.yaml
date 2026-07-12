@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   terraform-format:
@@ -101,3 +102,50 @@ jobs:
 
       - name: Run Checkov
         run: checkov -d . --framework terraform
+
+  terraform-plan:
+    name: Terraform plan
+    runs-on: ubuntu-latest
+    needs:
+      - terraform-format
+      - terraform-validate
+      - terraform-tflint
+      - terraform-checkov
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_TERRAFORM_SERVICE_ACCOUNT }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.0"
+
+      - name: Init Terraform
+        run: terraform init -input=false
+
+      - name: Create plan
+        run: terraform plan -input=false -out=tfplan -var-file=tfvars/dev.tfvars
+
+      - name: Add plan to summary
+        run: |
+          terraform show -no-color tfplan > plan.txt
+          cat plan.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-pr-plan
+          path: terraform/plan.txt
+          retention-days: 7

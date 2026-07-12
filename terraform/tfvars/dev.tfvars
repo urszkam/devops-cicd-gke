@@ -3,9 +3,29 @@ project_name = "suml-dev-s28722"
 env          = "dev"
 region       = "europe-west3"
 
-cloud_run_service_name  = "burnout-app"
-container_port          = 8080
-allow_unauthenticated   = true
-cloud_run_min_instances = 1
-cloud_run_max_instances = 3
-cloud_run_memory        = "512Mi"
+enabled_services = [
+  "artifactregistry.googleapis.com",
+  "cloudbuild.googleapis.com",
+  "compute.googleapis.com",
+  "container.googleapis.com",
+  "iam.googleapis.com",
+  "iamcredentials.googleapis.com",
+  "sts.googleapis.com",
+]
+
+app_name = "burnout-app"
+
+vpc_name             = "suml-dev-vpc"
+vpc_subnetwork_name  = "suml-dev-gke-subnet"
+vpc_nodes_cidr_block = "10.10.0.0/20"
+vpc_pods_range_name  = "gke-pods"
+vpc_pods_cidr_block  = "10.20.0.0/16"
+
+gke_cluster_name               = "suml-dev-gke"
+gke_deletion_protection        = false
+gke_master_ipv4_cidr_block     = "172.16.0.0/28"
+gke_master_authorized_networks = []
+gke_node_roles = [
+  "roles/artifactregistry.reader",
+  "roles/container.defaultNodeServiceAccount",
+]
