@@ -64,6 +64,16 @@ steps:
     args: ["apply", "tfplan"]
     dir: "terraform"
 
+  # Deploy Kubernetes manifests to GKE
+  - name: gcr.io/cloud-builders/gke-deploy
+    id: kubernetes-deploy
+    args:
+      - "run"
+      - "--filename=kubernetes"
+      - "--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_CLOUD_RUN_SERVICE}/${_CLOUD_RUN_SERVICE}:${SHORT_SHA}"
+      - "--location=${_REGION}"
+      - "--cluster=${_GKE_CLUSTER}"
+
 options:
   logging: CLOUD_LOGGING_ONLY
 
@@ -71,3 +81,4 @@ substitutions:
   _TFVARS: tfvars/dev.tfvars
   _REGION: europe-west3
   _CLOUD_RUN_SERVICE: burnout-app
+  _GKE_CLUSTER: suml-dev-gke
