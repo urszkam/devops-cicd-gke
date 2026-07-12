@@ -61,6 +61,11 @@ resource "google_container_cluster" "this" {
   }
 
   node_config {
+    shielded_instance_config {
+      enable_integrity_monitoring = true
+      enable_secure_boot          = true
+    }
+
     workload_metadata_config {
       mode = "GKE_METADATA"
     }
