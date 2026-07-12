@@ -26,6 +26,8 @@ resource "google_container_cluster" "this" {
   }
 
   master_authorized_networks_config {
+    gcp_public_cidrs_access_enabled = true
+
     dynamic "cidr_blocks" {
       for_each = var.master_authorized_networks
 
