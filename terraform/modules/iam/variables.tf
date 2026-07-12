@@ -8,6 +8,11 @@ variable "gke_service_account_display_name" {
   type        = string
 }
 
+variable "gke_node_roles" {
+  description = "IAM roles assigned to the GKE node service account."
+  type        = list(string)
+}
+
 variable "project_id" {
   description = "GCP project ID."
   type        = string
