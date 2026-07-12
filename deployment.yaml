@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: burnout-app-deployment
+  labels:
+    app: burnout-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: burnout-app
+  template:
+    metadata:
+      labels:
+        app: burnout-app
+    spec:
+      containers:
+        - name: burnout-app
+          image: europe-west3-docker.pkg.dev/suml-dev-s28722-499308/burnout-app/burnout-app:latest
+          ports:
+            - containerPort: 8080
