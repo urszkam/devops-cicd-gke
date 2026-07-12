@@ -18,7 +18,6 @@ steps:
       "plan",
       "-out=bootstrap.tfplan",
       "-var-file=${_TFVARS}",
-      "-var=container_image_tag=${SHORT_SHA}",
       "-target=module.artifact_registry",
     ]
     dir: "terraform"
@@ -35,7 +34,7 @@ steps:
     args: [
       "build",
       "-t",
-      "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_CLOUD_RUN_SERVICE}/${_CLOUD_RUN_SERVICE}:${SHORT_SHA}",
+      "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_APP_NAME}/${_APP_NAME}:${SHORT_SHA}",
       "app",
     ]
 
@@ -44,7 +43,7 @@ steps:
     id: docker-push
     args: [
       "push",
-      "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_CLOUD_RUN_SERVICE}/${_CLOUD_RUN_SERVICE}:${SHORT_SHA}",
+      "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_APP_NAME}/${_APP_NAME}:${SHORT_SHA}",
     ]
 
   # Terraform plan
@@ -54,7 +53,6 @@ steps:
       "plan",
       "-out=tfplan",
       "-var-file=${_TFVARS}",
-      "-var=container_image_tag=${SHORT_SHA}",
     ]
     dir: "terraform"
 
@@ -70,7 +68,7 @@ steps:
     args:
       - "run"
       - "--filename=kubernetes"
-      - "--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_CLOUD_RUN_SERVICE}/${_CLOUD_RUN_SERVICE}:${SHORT_SHA}"
+      - "--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_APP_NAME}/${_APP_NAME}:${SHORT_SHA}"
       - "--location=${_REGION}"
       - "--cluster=${_GKE_CLUSTER}"
 
@@ -80,5 +78,5 @@ options:
 substitutions:
   _TFVARS: tfvars/dev.tfvars
   _REGION: europe-west3
-  _CLOUD_RUN_SERVICE: burnout-app
+  _APP_NAME: burnout-app
   _GKE_CLUSTER: suml-dev-gke
