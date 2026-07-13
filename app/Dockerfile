@@ -1,5 +1,6 @@
 FROM python:3.13-slim
 
+# This image is built and deployed by Cloud Build.
 WORKDIR /app
 
 RUN apt-get update \
