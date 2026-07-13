@@ -1,6 +1,14 @@
-## SUML Project
+# DevOps CI/CD on Google Kubernetes Engine
 
-Sole contributor: Urszula Kamińska, s28722
+## Project overview
+
+This project demonstrates an end-to-end DevOps workflow for building and deploying a Streamlit application to Google Kubernetes Engine (GKE). The application was developed to predict developer burnout based on work habits, lifestyle and stress-related data.
+
+The Google Cloud infrastructure is managed with modular Terraform and includes a custom VPC, a GKE Autopilot cluster, dedicated service accounts and an Artifact Registry repository. Terraform uses a remote state stored in Cloud Storage.
+
+Pull requests trigger automated application, Kubernetes and Terraform validation in GitHub Actions. Infrastructure changes use Workload Identity Federation to authenticate to Google Cloud, publish a Terraform plan in GitHub and require user approval before `terraform apply`. After application changes are merged into the main branch, Cloud Build builds the Docker image, pushes it to Artifact Registry and deploys the Kubernetes manifests to GKE.
+
+Observability is provided by Google Cloud Monitoring and Cloud Logging. Google Cloud Managed Service for Prometheus collects application availability and response-time metrics exposed through Blackbox Exporter.
 
 ## Streamlit Application
 
@@ -21,24 +29,52 @@ The trained model is a RandomForestClassifier. The recorded evaluation results a
 
 ## Git hooks
 
-This project uses Git hooks managed by pre-commit to validate code and configuration before commits and pushes.
+The project uses the `pre-commit` framework to run local checks before changes are committed or pushed. This provides fast feedback and prevents common formatting, quality, security and configuration errors from reaching the remote repository.
 
-- **Ruff**: runs Python linting and formatting checks.
-- **isort**: sorts and groups Python imports.
-- **mypy**: checks Python types for common errors.
-- **terraform fmt**: formats Terraform files to canonical HCL style.
-- **check-yaml**: validates YAML syntax.
-- **detect-private-key**: detects private keys in staged files.
-- **detect-secrets**: flags likely secrets and tokens.
-- **Conventional Commits**: enforces a consistent commit message format.
+- **Ruff, isort and mypy** check Python formatting, imports, linting and types.
+- **terraform fmt** applies the canonical formatting to Terraform files.
+- **check-yaml and kubeconform** validate YAML files and Kubernetes manifests.
+- **detect-private-key and detect-secrets** help prevent credentials and other sensitive values from being committed.
+- **Conventional Commits** validates commit message formatting through the `commit-msg` hook.
+
+![Pre-commit hooks](assets/images/pre_commits.png)
 
 ## CI/CD
 
-GitHub Actions is used for pull request validation. It runs separate checks for Python and Terraform, including formatting, linting, validation, TFLint, Checkov and Snyk scans. Each check is exposed as its own status in the PR view, which makes failures easier to identify.
+The project uses separate pipelines for pull request validation, infrastructure deployment and application delivery. Path filters ensure that each pipeline runs only when files relevant to it are changed.
 
-![Pull request checks](assets/images/pr-checks.png)
+### Pull request validation
 
-Cloud Build is used for the deployment pipeline in Google Cloud. It is triggered after changes are merged into the main branch and handles the build and deployment flow for the application and infrastructure defined in the project.
+GitHub Actions validates changes before they are merged:
+
+- **App** runs Pytest, Ruff formatting and linting, Snyk security scans and a Docker image build.
+- **Kubernetes** validates manifests with kubeconform.
+- **Terraform** runs formatting, validation, TFLint and Checkov, and publishes a Terraform plan in the GitHub Actions summary.
+
+![Pull request checks](assets/images/pr_checks.png)
+
+### Infrastructure pipeline
+
+Infrastructure changes merged into `main` trigger the Terraform workflow in GitHub Actions. The workflow authenticates to Google Cloud through Workload Identity Federation, creates a saved Terraform plan and uploads it as a short-lived artifact. The apply job uses the protected `dev` environment and waits for user approval before applying the exact saved plan.
+
+![Terraform apply approval](assets/images/apply_approval.png)
+
+### Application pipeline
+
+Application and Kubernetes changes merged into `main` trigger Cloud Build. The pipeline:
+
+1. builds the application Docker image tagged with the commit SHA,
+2. pushes the image to Artifact Registry,
+3. resolves the immutable image digest,
+4. deploys the Kubernetes manifests to GKE.
+
+![Cloud Build pipeline](assets/images/cloud_build.png)
+
+### Failed workflow notifications
+
+GitHub Actions e-mail notifications are enabled for failed workflow runs. The message identifies the workflow and failed job and links directly to the run logs, so infrastructure validation or deployment failures can be investigated without monitoring the Actions page manually.
+
+![Failed GitHub Actions workflow notification](assets/images/failed_deployment_notification.png)
 
 ## Cloud
 
@@ -51,24 +87,102 @@ The application is deployed to Google Kubernetes Engine. Docker images are store
 
 ## Terraform
 
-Terraform creates:
+Terraform provisions and manages the Google Cloud infrastructure required by the application. The configuration is divided into reusable modules with clearly separated responsibilities.
 
-- required Google Cloud APIs,
-- an Artifact Registry Docker repository,
-- a dedicated GKE node service account,
-- a GKE Autopilot cluster.
+| Module | Responsibility |
+| --- | --- |
+| `project_services` | Enables the required Google Cloud APIs. |
+| `artifact_registry` | Creates the Docker repository used for application images. |
+| `vpc` | Creates the custom VPC, subnet, secondary Pod range, firewall rule, router and Cloud NAT. |
+| `iam` | Creates the dedicated GKE node service account and assigns its minimal roles. |
+| `gke` | Creates the private-node GKE Autopilot cluster using the stable release channel. |
+| `monitoring` | Creates the application alert policies and e-mail notification channel. |
 
-### Deployment
+The cluster uses the custom VPC and service account instead of their default equivalents. The configuration also enables features such as Workload Identity, Shielded GKE Nodes, the GKE Metadata Server, Binary Authorization and master authorized networks.
 
-Cloud Build runs the deployment pipeline from `cloudbuild.yaml`:
+### State and environment configuration
 
-1. Initializes and validates Terraform.
-2. Plans and applies the Artifact Registry bootstrap so the image can be pushed.
-3. Builds the Docker image of the Streamlit application.
-4. Pushes the image to Artifact Registry.
-5. Runs Terraform plan and apply.
-6. Deploys the Kubernetes manifests to GKE.
+Terraform state is stored remotely in the `suml-s28722-terraform-state` Cloud Storage bucket under the `dev` prefix. The GCS backend provides shared state and state locking for local and CI operations.
 
+Environment-specific values are defined in `terraform/tfvars/dev.tfvars`, while common labels are generated in `terraform/locals.tf`. Terraform and Google provider version constraints are defined in `terraform/versions.tf`.
+
+The state bucket, GitHub Workload Identity Federation provider and GitHub Actions service account are bootstrap resources created outside this Terraform configuration.
+
+### Initial bootstrap
+
+Artifact Registry is not created by the application pipeline. During the initial setup, the Terraform infrastructure workflow must be completed first. After user approval, `terraform apply` enables the required APIs and creates Artifact Registry, the network, IAM resources and the GKE cluster. Cloud Build can then build and push the first application image to the existing repository and deploy it to GKE.
+
+This ordering keeps infrastructure provisioning out of the application pipeline and avoids a circular dependency on an Artifact Registry repository that does not yet exist.
+
+### Validation and deployment
+
+Terraform changes are validated on pull requests with `terraform fmt`, `terraform validate`, TFLint and Checkov. GitHub Actions then authenticates to Google Cloud through Workload Identity Federation and publishes the Terraform plan in the workflow summary.
+
+After changes are merged into `main`, the infrastructure workflow creates and stores a new plan. The protected `dev` environment pauses the apply job until a user approves it. The exact saved plan is then applied, preventing differences between the reviewed plan and the deployed infrastructure.
+
+For local validation and planning:
+
+```sh
+cd terraform
+gcloud auth application-default login
+terraform init -reconfigure
+terraform fmt -check -recursive
+terraform validate
+terraform plan -var-file=tfvars/dev.tfvars
+```
+
+## Kubernetes
+
+The application runs on a regional GKE Autopilot cluster. Kubernetes manifests are stored in the `kubernetes` directory and are validated with kubeconform on pull requests before Cloud Build deploys them with `gke-deploy`.
+
+### Application workload
+
+The `burnout-app-deployment` Deployment runs two replicas of the Streamlit container on port `8080`. Explicit CPU and memory requests and limits provide predictable resource allocation in Autopilot.
+
+The Deployment includes two HTTP health checks using the Streamlit `/_stcore/health` endpoint:
+
+- **readiness probe** prevents a Pod from receiving traffic until the application is ready,
+- **liveness probe** restarts the container when the application stops responding.
+
+The manifest contains the Artifact Registry image name with a placeholder tag. During deployment, `gke-deploy` replaces it with the immutable digest of the image built for the current commit. Kubernetes then performs a rolling update of the application replicas.
+
+### Application service
+
+The `burnout-app-service` Service uses the `LoadBalancer` type. It exposes the application externally on port `80` and forwards traffic to port `8080` on ready application Pods.
+
+### Prometheus monitoring resources
+
+The Blackbox Exporter configuration, Deployment and `PodMonitoring` resource are defined in `kubernetes/blackbox-exporter.yaml`. The exporter checks the internal Streamlit health endpoint every 30 seconds and exposes availability, HTTP status and response-time metrics. Google Cloud Managed Service for Prometheus collects these metrics and stores them in Cloud Monitoring.
+
+## Monitoring and notifications
+
+Google Cloud Managed Service for Prometheus collects the Blackbox Exporter metrics without requiring a separately managed Prometheus server. The metrics can be queried and visualized in Google Cloud Monitoring using PromQL. The main signals used by the project are:
+
+- `probe_success`, which indicates whether the application health endpoint is reachable,
+- `probe_duration_seconds`, which measures how long the probe takes.
+
+![Probe duration metric in Cloud Monitoring](assets/images/prometheus_probe_duration_seconds.png)
+
+The Terraform `monitoring` module creates two application alert policies:
+
+- **Probe failure** is triggered when `probe_success` equals `0` for at least 60 seconds.
+- **Slow probe** is triggered when the average `probe_duration_seconds` over five minutes exceeds the threshold configured in `terraform/tfvars/dev.tfvars` (3 seconds in the development environment).
+
+Both policies are evaluated every 30 seconds. When a condition is met, Cloud Monitoring opens an incident and sends an e-mail through the notification channel managed by Terraform. The recipient address is supplied to Terraform during the infrastructure workflow and is not stored in the repository.
+
+![Probe failure e-mail notification](assets/images/alert_probe_notification.png)
+
+The incident and both application alert policies can also be reviewed directly in Cloud Monitoring.
+
+![Cloud Monitoring incidents and alert policies](assets/images/probe_notification.png)
+
+### Cloud Build failure notifications
+
+The monitoring module also creates a log-based alert for failed Cloud Build steps. A failure during the image build, push to Artifact Registry or deployment to GKE produces an error in the Cloud Build log. Cloud Monitoring matches that log entry, opens an incident and sends a notification through the same e-mail channel as the application alerts.
+
+## Logging
+
+Logs from the application containers running in GKE and from Cloud Build are collected centrally in Google Cloud Logging. Logs Explorer can be used to inspect application output and Kubernetes events or trace individual image builds and deployments. Cloud Build logs are also the source used by the deployment failure alert described above.
 
 ## Local setup
 
@@ -76,7 +190,7 @@ Python 3.13 is used in the Docker image and CI workflows.
 
 1. Clone the repository:
    ```sh
-   git clone https://github.com/urszkam/suml-s28722.git
+   git clone https://github.com/urszkam/devops-cicd-gke.git
    cd projekt
    ```
 2. From the project root, install development dependencies and Git hooks:
