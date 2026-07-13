@@ -2,10 +2,18 @@ name: Terraform
 
 on:
   pull_request:
+    paths:
+      - "terraform/**"
+      - "config/.tflint.hcl"
+      - ".github/workflows/pr-terraform.yaml"
 
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: terraform-dev
+  cancel-in-progress: false
 
 jobs:
   terraform-format:
