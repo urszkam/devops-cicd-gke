@@ -33,6 +33,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: check-yaml
+        args: [--allow-multiple-documents]
       - id: detect-private-key
 
   - repo: local
@@ -41,7 +42,13 @@ repos:
         name: Validate Kubernetes manifests
         entry: ghcr.io/yannh/kubeconform:v0.7.0
         language: docker_image
-        args: [-strict, -summary]
+        args:
+          - -strict
+          - -summary
+          - -schema-location
+          - default
+          - -schema-location
+          - https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
         files: ^kubernetes/.*\.ya?ml$
 
   - repo: https://github.com/Yelp/detect-secrets
