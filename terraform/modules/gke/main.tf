@@ -2,6 +2,8 @@ resource "google_container_cluster" "this" {
   # checkov:skip=CKV_GCP_12:Autopilot enables and manages network policy; the provider rejects network_policy with enable_autopilot.
   # checkov:skip=CKV_GCP_61:Autopilot manages intranode visibility; the provider rejects enable_intranode_visibility with enable_autopilot.
   # checkov:skip=CKV_GCP_65:Google Groups for RBAC requires a verified Google Workspace or Cloud Identity domain, which this project does not have.
+  # checkov:skip=CKV_GCP_68:Autopilot manages node pools and rejects node_config updates, including Secure Boot settings.
+  # checkov:skip=CKV_GCP_69:Autopilot enables the GKE Metadata Server and rejects workload_metadata_config updates through node_config.
   name       = var.cluster_name
   location   = var.location
   network    = var.network
@@ -52,22 +54,5 @@ resource "google_container_cluster" "this" {
     auto_provisioning_defaults {
       service_account = var.node_service_account
     }
-  }
-
-  node_config {
-    shielded_instance_config {
-      enable_integrity_monitoring = true
-      enable_secure_boot          = true
-    }
-
-    workload_metadata_config {
-      mode = "GKE_METADATA"
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [
-      node_config[0].reservation_affinity,
-    ]
   }
 }
