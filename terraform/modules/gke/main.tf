@@ -72,4 +72,10 @@ resource "google_container_cluster" "this" {
       mode = "GKE_METADATA"
     }
   }
+
+  lifecycle {
+    ignore_changes = [
+      node_config[0].reservation_affinity,
+    ]
+  }
 }

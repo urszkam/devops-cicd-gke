@@ -441,4 +441,3 @@ FodyWeavers.xsd
 
 # Terraform local working directories
 **/.terraform/
-**/.terraform.lock.hcl
