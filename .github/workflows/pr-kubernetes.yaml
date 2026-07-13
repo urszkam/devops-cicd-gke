@@ -1,0 +1,31 @@
+name: Kubernetes
+
+on:
+  pull_request:
+    paths:
+      - "kubernetes/**"
+      - ".pre-commit-config.yaml"
+      - ".github/workflows/pr-kubernetes.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  kubernetes-validate:
+    name: Validate manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Validate Kubernetes manifests
+        run: pre-commit run kubeconform --all-files

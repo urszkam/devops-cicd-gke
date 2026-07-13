@@ -2,6 +2,11 @@ name: Python
 
 on:
   pull_request:
+    paths:
+      - "app/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/pr-python.yaml"
 
 permissions:
   contents: read

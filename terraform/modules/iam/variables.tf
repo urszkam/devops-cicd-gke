@@ -10,7 +10,7 @@ variable "gke_service_account_display_name" {
 
 variable "gke_node_roles" {
   description = "IAM roles assigned to the GKE node service account."
-  type        = list(string)
+  type        = set(string)
 }
 
 variable "project_id" {
