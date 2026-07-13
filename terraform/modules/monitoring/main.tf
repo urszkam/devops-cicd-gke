@@ -46,3 +46,39 @@ resource "google_monitoring_alert_policy" "probe_duration" {
     }
   }
 }
+
+resource "google_monitoring_alert_policy" "cloud_build_failure" {
+  display_name = "Cloud Build failure"
+  combiner     = "OR"
+  enabled      = true
+  severity     = "ERROR"
+  user_labels  = var.labels
+
+  notification_channels = [google_monitoring_notification_channel.email.name]
+
+  conditions {
+    display_name = "Cloud Build step failed"
+
+    condition_matched_log {
+      filter = <<-EOT
+        resource.type="build"
+        log_id("cloudbuild")
+        textPayload=~"^ERROR: build step .* failed"
+      EOT
+    }
+  }
+
+  alert_strategy {
+    auto_close           = "1800s"
+    notification_prompts = ["OPENED"]
+
+    notification_rate_limit {
+      period = "300s"
+    }
+  }
+
+  documentation {
+    content   = "A Cloud Build step failed. Check Cloud Build history to identify whether the image build, push, or Kubernetes deployment failed."
+    mime_type = "text/markdown"
+  }
+}
