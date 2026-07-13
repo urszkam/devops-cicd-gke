@@ -10,6 +10,8 @@ enabled_services = [
   "container.googleapis.com",
   "iam.googleapis.com",
   "iamcredentials.googleapis.com",
+  "logging.googleapis.com",
+  "monitoring.googleapis.com",
   "sts.googleapis.com",
 ]
 
