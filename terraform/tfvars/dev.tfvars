@@ -15,7 +15,9 @@ enabled_services = [
   "sts.googleapis.com",
 ]
 
-app_name = "burnout-app"
+app_name                         = "burnout-app"
+kubernetes_namespace             = "default"
+probe_duration_threshold_seconds = 3
 
 vpc_name             = "suml-dev-vpc"
 vpc_subnetwork_name  = "suml-dev-gke-subnet"

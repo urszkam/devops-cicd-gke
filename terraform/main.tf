@@ -60,3 +60,15 @@ module "gke" {
     module.vpc,
   ]
 }
+
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  app_name                         = var.app_name
+  namespace                        = var.kubernetes_namespace
+  notification_email               = var.notification_email
+  probe_duration_threshold_seconds = var.probe_duration_threshold_seconds
+  labels                           = local.common_labels
+
+  depends_on = [module.project_services]
+}

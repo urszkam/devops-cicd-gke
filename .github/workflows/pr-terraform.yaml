@@ -15,6 +15,9 @@ concurrency:
   group: terraform-dev
   cancel-in-progress: false
 
+env:
+  TF_VAR_notification_email: ${{ vars.NOTIFICATION_EMAIL }}
+
 jobs:
   terraform-format:
     name: Terraform fmt
