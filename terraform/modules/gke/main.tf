@@ -51,14 +51,6 @@ resource "google_container_cluster" "this" {
   cluster_autoscaling {
     auto_provisioning_defaults {
       service_account = var.node_service_account
-      oauth_scopes = [
-        "https://www.googleapis.com/auth/cloud-platform",
-      ]
-
-      shielded_instance_config {
-        enable_integrity_monitoring = true
-        enable_secure_boot          = true
-      }
     }
   }
 
