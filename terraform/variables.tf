@@ -28,6 +28,26 @@ variable "app_name" {
   type        = string
 }
 
+variable "kubernetes_namespace" {
+  description = "Kubernetes namespace containing the application."
+  type        = string
+}
+
+variable "notification_email" {
+  description = "Email address receiving monitoring notifications."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.notification_email))
+    error_message = "notification_email must be a valid email address."
+  }
+}
+
+variable "probe_duration_threshold_seconds" {
+  description = "Maximum allowed average probe duration in seconds."
+  type        = number
+}
+
 variable "vpc_name" {
   description = "Name of the VPC network."
   type        = string
