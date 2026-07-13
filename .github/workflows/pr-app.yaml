@@ -1,4 +1,4 @@
-name: Python
+name: App
 
 on:
   pull_request:
@@ -6,12 +6,23 @@ on:
       - "app/**"
       - "tests/**"
       - "requirements.txt"
-      - ".github/workflows/pr-python.yaml"
+      - ".github/workflows/pr-app.yaml"
 
 permissions:
   contents: read
 
 jobs:
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build image
+        run: docker build -t burnout-app:pr app
+
   python-tests:
     name: Pytest
     runs-on: ubuntu-latest
