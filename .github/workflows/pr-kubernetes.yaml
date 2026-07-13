@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - "kubernetes/**"
-      - ".pre-commit-config.yaml"
       - ".github/workflows/pr-kubernetes.yaml"
 
 permissions:
@@ -17,15 +16,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install pre-commit
-        run: pip install pre-commit
+        uses: actions/checkout@v5
 
       - name: Validate Kubernetes manifests
-        run: pre-commit run kubeconform --all-files
+        run: |
+          docker run --rm \
+            --volume "${{ github.workspace }}:/workspace" \
+            --workdir /workspace \
+            ghcr.io/yannh/kubeconform:v0.7.0 \
+            -strict -summary kubernetes
