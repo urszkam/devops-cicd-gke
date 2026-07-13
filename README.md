@@ -70,6 +70,12 @@ Application and Kubernetes changes merged into `main` trigger Cloud Build. The p
 
 ![Cloud Build pipeline](assets/images/cloud_build.png)
 
+### Failed workflow notifications
+
+GitHub Actions e-mail notifications are enabled for failed workflow runs. The message identifies the workflow and failed job and links directly to the run logs, so infrastructure validation or deployment failures can be investigated without monitoring the Actions page manually.
+
+![Failed GitHub Actions workflow notification](assets/images/failed_deployment_notification.png)
+
 ## Cloud
 
 The application is deployed to Google Kubernetes Engine. Docker images are stored in Artifact Registry.
@@ -90,6 +96,7 @@ Terraform provisions and manages the Google Cloud infrastructure required by the
 | `vpc` | Creates the custom VPC, subnet, secondary Pod range, firewall rule, router and Cloud NAT. |
 | `iam` | Creates the dedicated GKE node service account and assigns its minimal roles. |
 | `gke` | Creates the private-node GKE Autopilot cluster using the stable release channel. |
+| `monitoring` | Creates the application alert policies and e-mail notification channel. |
 
 The cluster uses the custom VPC and service account instead of their default equivalents. The configuration also enables features such as Workload Identity, Shielded GKE Nodes, the GKE Metadata Server, Binary Authorization and master authorized networks.
 
@@ -146,6 +153,36 @@ The `burnout-app-service` Service uses the `LoadBalancer` type. It exposes the a
 ### Prometheus monitoring resources
 
 The Blackbox Exporter configuration, Deployment and `PodMonitoring` resource are defined in `kubernetes/blackbox-exporter.yaml`. The exporter checks the internal Streamlit health endpoint every 30 seconds and exposes availability, HTTP status and response-time metrics. Google Cloud Managed Service for Prometheus collects these metrics and stores them in Cloud Monitoring.
+
+## Monitoring and notifications
+
+Google Cloud Managed Service for Prometheus collects the Blackbox Exporter metrics without requiring a separately managed Prometheus server. The metrics can be queried and visualized in Google Cloud Monitoring using PromQL. The main signals used by the project are:
+
+- `probe_success`, which indicates whether the application health endpoint is reachable,
+- `probe_duration_seconds`, which measures how long the probe takes.
+
+![Probe duration metric in Cloud Monitoring](assets/images/prometheus_probe_duration_seconds.png)
+
+The Terraform `monitoring` module creates two application alert policies:
+
+- **Probe failure** is triggered when `probe_success` equals `0` for at least 60 seconds.
+- **Slow probe** is triggered when the average `probe_duration_seconds` over five minutes exceeds the threshold configured in `terraform/tfvars/dev.tfvars` (3 seconds in the development environment).
+
+Both policies are evaluated every 30 seconds. When a condition is met, Cloud Monitoring opens an incident and sends an e-mail through the notification channel managed by Terraform. The recipient address is supplied to Terraform during the infrastructure workflow and is not stored in the repository.
+
+![Probe failure e-mail notification](assets/images/alert_probe_notification.png)
+
+The incident and both application alert policies can also be reviewed directly in Cloud Monitoring.
+
+![Cloud Monitoring incidents and alert policies](assets/images/probe_notification.png)
+
+### Cloud Build failure notifications
+
+The monitoring module also creates a log-based alert for failed Cloud Build steps. A failure during the image build, push to Artifact Registry or deployment to GKE produces an error in the Cloud Build log. Cloud Monitoring matches that log entry, opens an incident and sends a notification through the same e-mail channel as the application alerts.
+
+## Logging
+
+Logs from the application containers running in GKE and from Cloud Build are collected centrally in Google Cloud Logging. Logs Explorer can be used to inspect application output and Kubernetes events or trace individual image builds and deployments. Cloud Build logs are also the source used by the deployment failure alert described above.
 
 ## Local setup
 
