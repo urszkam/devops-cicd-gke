@@ -4,7 +4,7 @@ resource "google_service_account" "gke" {
 }
 
 resource "google_project_iam_member" "gke_node" {
-  for_each = toset(var.gke_node_roles)
+  for_each = var.gke_node_roles
 
   project = var.project_id
   role    = each.value

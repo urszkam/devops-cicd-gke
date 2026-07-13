@@ -5,5 +5,5 @@ variable "project_id" {
 
 variable "services" {
   description = "Google Cloud APIs enabled for the project."
-  type        = list(string)
+  type        = set(string)
 }

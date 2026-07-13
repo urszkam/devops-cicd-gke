@@ -20,7 +20,7 @@ variable "region" {
 
 variable "enabled_services" {
   description = "Google Cloud APIs enabled for the project."
-  type        = list(string)
+  type        = set(string)
 }
 
 variable "app_name" {
@@ -60,7 +60,7 @@ variable "gke_cluster_name" {
 
 variable "gke_node_roles" {
   description = "IAM roles assigned to the GKE node service account."
-  type        = list(string)
+  type        = set(string)
 }
 
 variable "gke_deletion_protection" {
