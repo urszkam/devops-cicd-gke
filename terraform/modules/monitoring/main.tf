@@ -78,7 +78,7 @@ resource "google_monitoring_alert_policy" "cloud_build_failure" {
   }
 
   documentation {
-    content   = "A Cloud Build step failed. Check Cloud Build history to identify whether the image build, push, or Kubernetes deployment failed."
+    content   = "A Cloud Build step failed. Check Cloud Build history and logs to identify whether the image build, push, or Kubernetes deployment failed."
     mime_type = "text/markdown"
   }
 }
